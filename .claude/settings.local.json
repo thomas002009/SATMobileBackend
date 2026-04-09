@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__query-docs",
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx nest:*)",
+      "mcp__supabase__get_project_url",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__apply_migration",
+      "Bash(ls /c/Users/thoma/Desktop/CodingMind/VocabProjectBackend/.env*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}
