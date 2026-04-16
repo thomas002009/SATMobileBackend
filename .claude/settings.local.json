@@ -10,7 +10,9 @@
       "mcp__supabase__list_migrations",
       "mcp__supabase__list_tables",
       "mcp__supabase__apply_migration",
-      "Bash(ls /c/Users/thoma/Desktop/CodingMind/VocabProjectBackend/.env*)"
+      "Bash(ls /c/Users/thoma/Desktop/CodingMind/VocabProjectBackend/.env*)",
+      "Bash(npx tsc:*)",
+      "mcp__plugin_prisma_Prisma-Local__migrate-dev"
     ]
   },
   "enableAllProjectMcpServers": true,
