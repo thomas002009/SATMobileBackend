@@ -12,7 +12,10 @@
       "mcp__supabase__apply_migration",
       "Bash(ls /c/Users/thoma/Desktop/CodingMind/VocabProjectBackend/.env*)",
       "Bash(npx tsc:*)",
-      "mcp__plugin_prisma_Prisma-Local__migrate-dev"
+      "mcp__plugin_prisma_Prisma-Local__migrate-dev",
+      "Bash(npm list *)",
+      "WebSearch",
+      "Bash(Get-ChildItem *)"
     ]
   },
   "enableAllProjectMcpServers": true,
