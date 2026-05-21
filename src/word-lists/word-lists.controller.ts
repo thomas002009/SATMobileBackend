@@ -99,41 +99,6 @@ export class WordListsController {
   }
 
   @ApiBearerAuth()
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['title', 'words'],
-      properties: {
-        title: { type: 'string' },
-        description: { type: 'string' },
-        words: {
-          type: 'array',
-          items: { type: 'string' },
-          example: ['ephemeral', 'serendipity', 'ubiquitous'],
-        },
-      },
-    },
-  })
-  @ApiOkResponse({ description: 'Creates a word list with AI-generated definitions and examples' })
-  @ApiBadRequestResponse({ description: 'Missing title or empty words array' })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
-  @UseGuards(JwtAuthGuard)
-  @Post('generate')
-  createWithAiDefinitions(
-    @Request() req: { user: { id: string } },
-    @Body() body: { title: string; description?: string; words: string[] },
-  ) {
-    if (!body.title) throw new BadRequestException('title is required');
-    if (!body.words?.length) throw new BadRequestException('words array is required');
-    return this.wordListsService.createWithAiDefinitions(
-      req.user.id,
-      body.title,
-      body.description,
-      body.words,
-    );
-  }
-
-  @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {

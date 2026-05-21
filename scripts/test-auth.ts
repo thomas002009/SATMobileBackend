@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'http://localhost:8080';
 
 async function main() {
   // 1. Create a temp user in the DB
@@ -16,7 +16,9 @@ async function main() {
   console.log('Created test user:', user.id);
 
   // 2. Mint a token for that user
-  const token = jwt.sign({ sub: user.id }, process.env.JWT_SECRET!, { expiresIn: '1h' });
+  const token = jwt.sign({ sub: user.id }, process.env.JWT_SECRET!, {
+    expiresIn: '1h',
+  });
 
   // 3. Hit /users/me WITH the token
   const authed = await fetch(`${BASE_URL}/users/me`, {

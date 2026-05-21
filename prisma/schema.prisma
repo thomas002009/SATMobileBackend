@@ -22,8 +22,20 @@ model User {
   emailVerified     Boolean   @default(false)
   verificationToken String?   @unique
 
-  lists    WordList[]
-  progress UserWordProgress[]
+  lists            WordList[]
+  progress         UserWordProgress[]
+  calendarSettings UserCalendarSettings?
+}
+
+model UserCalendarSettings {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  sourceListId   String?
+  chunkOverrides Json     @default("{}")
+  extraListIds   Json     @default("[]")
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model WordList {

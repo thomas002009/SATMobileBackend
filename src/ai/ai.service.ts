@@ -1,5 +1,6 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import OpenAI from 'openai';
+import { PrismaService } from '../prisma/prisma.service';
 
 const RETRY_DELAYS_MS = [3000, 8000, 20000];
 
@@ -9,12 +10,12 @@ const DEFAULT_MODEL = 'google/gemma-4-31b-it:free';
 export class AiService {
   private readonly client: OpenAI;
 
-  constructor() {
+  constructor(private readonly prisma: PrismaService) {
     this.client = new OpenAI({
       apiKey: process.env.OPENROUTER_API_KEY,
       baseURL: 'https://openrouter.ai/api/v1',
       defaultHeaders: {
-        'HTTP-Referer': process.env.APP_URL ?? 'http://localhost:3000',
+        'HTTP-Referer': process.env.APP_URL ?? 'http://localhost:8080',
         'X-Title': 'VocabProject',
       },
     });
@@ -41,6 +42,13 @@ export class AiService {
       stream: true,
       ...options,
     });
+  }
+
+  async generateSingleDefinition(
+    word: string,
+  ): Promise<{ word: string; definition: string; example: string }> {
+    const results = await this.generateDefinitions([word]);
+    return results[0];
   }
 
   async generateDefinitions(
@@ -73,7 +81,8 @@ Words: ${words.join(', ')}`;
           example: string;
         }[];
       } catch (err) {
-        const is429 = err instanceof OpenAI.RateLimitError || (err as any)?.status === 429;
+        const is429 =
+          err instanceof OpenAI.RateLimitError || (err as any)?.status === 429;
         if (!is429 || attempt === RETRY_DELAYS_MS.length) {
           lastError = err;
           break;
@@ -86,5 +95,29 @@ Words: ${words.join(', ')}`;
       'AI model is currently rate-limited. Please try again in a moment.',
       { cause: lastError },
     );
+  }
+
+  async createWithAiDefinitions(
+    ownerId: string,
+    title: string,
+    description: string | undefined,
+    words: string[],
+  ): Promise<{ listId: string; count: number }> {
+    const generated = await this.generateDefinitions(words);
+
+    const list = await this.prisma.wordList.create({
+      data: { title, description, ownerId },
+    });
+
+    const result = await this.prisma.word.createMany({
+      data: generated.map((w) => ({
+        term: w.word,
+        definition: w.definition,
+        example: w.example || null,
+        listId: list.id,
+      })),
+    });
+
+    return { listId: list.id, count: result.count };
   }
 }

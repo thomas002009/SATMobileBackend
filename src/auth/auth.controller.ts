@@ -6,6 +6,7 @@ import {
   ApiUnauthorizedResponse,
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiSecurity,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { AuthDto } from './dto';
@@ -42,10 +43,14 @@ export class AuthController {
     return this.authService.login(body.email, body.password);
   }
 
+  @ApiSecurity('google')
+  @ApiOkResponse({ description: 'Redirects to Google OAuth consent page' })
   @Get('google')
   @UseGuards(GoogleAuthGuard)
   googleLogin() {}
 
+  @ApiSecurity('google')
+  @ApiOkResponse({ description: 'Returns a JWT access token after Google login' })
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   async googleCallback(@Request() req) {

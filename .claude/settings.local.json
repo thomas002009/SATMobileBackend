@@ -15,7 +15,9 @@
       "mcp__plugin_prisma_Prisma-Local__migrate-dev",
       "Bash(npm list *)",
       "WebSearch",
-      "Bash(Get-ChildItem *)"
+      "Bash(Get-ChildItem *)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "PowerShell($env:APP_URL)"
     ]
   },
   "enableAllProjectMcpServers": true,

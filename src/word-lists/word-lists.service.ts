@@ -1,14 +1,10 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { parse } from 'csv-parse/sync';
 import { PrismaService } from '../prisma/prisma.service';
-import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class WordListsService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly ai: AiService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async getDefaultList() {
     const list = await this.prisma.wordList.findFirst({
@@ -54,32 +50,6 @@ export class WordListsService {
         term: w.word,
         definition: w.definition ?? '',
         example: w.example ?? null,
-        listId: list.id,
-      })),
-    });
-
-    return { listId: list.id, count: result.count };
-  }
-
-  async createWithAiDefinitions(
-    ownerId: string,
-    title: string,
-    description: string | undefined,
-    words: string[],
-  ): Promise<{ listId: string; count: number }> {
-    if (!words.length) throw new BadRequestException('words array is empty');
-
-    const generated = await this.ai.generateDefinitions(words);
-
-    const list = await this.prisma.wordList.create({
-      data: { title, description, ownerId },
-    });
-
-    const result = await this.prisma.word.createMany({
-      data: generated.map((w) => ({
-        term: w.word,
-        definition: w.definition,
-        example: w.example || null,
         listId: list.id,
       })),
     });

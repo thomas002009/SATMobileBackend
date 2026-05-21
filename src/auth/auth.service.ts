@@ -90,6 +90,7 @@ export class AuthService {
   async deleteAccount(userId: string) {
     await this.prisma.$transaction([
       this.prisma.userWordProgress.deleteMany({ where: { userId } }),
+      this.prisma.userCalendarSettings.deleteMany({ where: { userId } }),
       this.prisma.wordList.updateMany({ where: { ownerId: userId }, data: { ownerId: null } }),
       this.prisma.user.delete({ where: { id: userId } }),
     ]);
