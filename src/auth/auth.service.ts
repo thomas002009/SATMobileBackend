@@ -67,6 +67,16 @@ export class AuthService {
     return { access_token: this.jwt.sign({ sub: user.id }) };
   }
 
+  async googleTokenLogin(accessToken: string) {
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) throw new UnauthorizedException('Invalid Google token');
+    const info = await res.json() as { sub: string; email: string };
+    const result = await this.googleLogin(info.sub, info.email);
+    return { ...result, email: info.email };
+  }
+
   async googleLogin(googleId: string, email: string) {
     let user = await this.prisma.user.findUnique({ where: { googleId } });
 

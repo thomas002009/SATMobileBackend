@@ -43,6 +43,12 @@ export class AuthController {
     return this.authService.login(body.email, body.password);
   }
 
+  @ApiOkResponse({ description: 'Exchanges a Google access token for an app JWT' })
+  @Post('google')
+  googleTokenLogin(@Body('access_token') accessToken: string) {
+    return this.authService.googleTokenLogin(accessToken);
+  }
+
   @ApiSecurity('google')
   @ApiOkResponse({ description: 'Redirects to Google OAuth consent page' })
   @Get('google')
