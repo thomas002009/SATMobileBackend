@@ -92,10 +92,12 @@ export class AiController {
   async enrichList(
     @Body() body: { words: { word: string; [key: string]: unknown }[] },
   ) {
-    if (!body.words?.length) throw new BadRequestException('words array is required');
+    if (!body.words?.length)
+      throw new BadRequestException('words array is required');
 
     const terms = body.words.map((w) => {
-      if (!w.word?.trim()) throw new BadRequestException('each item must have a word field');
+      if (!w.word?.trim())
+        throw new BadRequestException('each item must have a word field');
       return w.word.trim();
     });
 
@@ -106,6 +108,44 @@ export class AiController {
       definition: generated[i]?.definition ?? '',
       example: generated[i]?.example ?? '',
     }));
+  }
+
+  @ApiBearerAuth()
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['text', 'title'],
+      properties: {
+        text: {
+          type: 'string',
+          description:
+            'Raw text chunk from a PDF containing words and definitions',
+        },
+        title: { type: 'string', example: 'Chapter 3 Vocabulary' },
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Parses PDF text into a word list via AI and saves it',
+    schema: {
+      type: 'object',
+      properties: {
+        listId: { type: 'string' },
+        count: { type: 'number' },
+      },
+    },
+  })
+  @ApiBadRequestResponse({ description: 'text and title are required' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @UseGuards(JwtAuthGuard)
+  @Post('parse-pdf')
+  parsePdf(
+    @Request() req: { user: { id: string } },
+    @Body() body: { text: string; title: string },
+  ) {
+    if (!body.text?.trim()) throw new BadRequestException('text is required');
+    if (!body.title?.trim()) throw new BadRequestException('title is required');
+    return this.ai.parsePdfAndCreate(req.user.id, body.text.trim(), body.title.trim());
   }
 
   @ApiBearerAuth()
@@ -124,7 +164,10 @@ export class AiController {
       },
     },
   })
-  @ApiOkResponse({ description: 'Creates a word list with AI-generated definitions and examples' })
+  @ApiOkResponse({
+    description:
+      'Creates a word list with AI-generated definitions and examples',
+  })
   @ApiBadRequestResponse({ description: 'Missing title or empty words array' })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @UseGuards(JwtAuthGuard)
@@ -134,7 +177,8 @@ export class AiController {
     @Body() body: { title: string; description?: string; words: string[] },
   ) {
     if (!body.title) throw new BadRequestException('title is required');
-    if (!body.words?.length) throw new BadRequestException('words array is required');
+    if (!body.words?.length)
+      throw new BadRequestException('words array is required');
     return this.ai.createWithAiDefinitions(
       req.user.id,
       body.title,
