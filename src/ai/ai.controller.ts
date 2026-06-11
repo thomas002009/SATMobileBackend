@@ -5,10 +5,14 @@ import {
   Request,
   UseGuards,
   BadRequestException,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOkResponse,
   ApiBadRequestResponse,
   ApiUnauthorizedResponse,
@@ -111,22 +115,54 @@ export class AiController {
   }
 
   @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['text', 'title'],
+      required: ['file', 'title'],
       properties: {
-        text: {
-          type: 'string',
-          description:
-            'Raw text chunk from a PDF containing words and definitions',
-        },
+        file: { type: 'string', format: 'binary', description: 'PDF file to parse' },
         title: { type: 'string', example: 'Chapter 3 Vocabulary' },
       },
     },
   })
   @ApiOkResponse({
-    description: 'Parses PDF text into a word list via AI and saves it',
+    description: 'Extracts and returns raw text from an uploaded PDF',
+    schema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string' },
+      },
+    },
+  })
+  @ApiBadRequestResponse({ description: 'file is required' })
+  @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  @Post('upload-pdf')
+  async uploadPdf(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('file is required');
+    const text = await this.ai.extractPdfText(file.buffer);
+    if (!text.trim()) throw new BadRequestException('could not extract text from PDF');
+    return { text };
+  }
+
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file', 'title'],
+      properties: {
+        file: { type: 'string', format: 'binary', description: 'PDF file to parse' },
+        title: { type: 'string', example: 'Chapter 3 Vocabulary' },
+      },
+    },
+  })
+  @ApiOkResponse({
+    description: 'Extracts PDF text, parses it via AI, and saves it as a word list',
     schema: {
       type: 'object',
       properties: {
@@ -135,17 +171,21 @@ export class AiController {
       },
     },
   })
-  @ApiBadRequestResponse({ description: 'text and title are required' })
+  @ApiBadRequestResponse({ description: 'file or title is required' })
   @ApiUnauthorizedResponse({ description: 'Missing or invalid token' })
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
   @Post('parse-pdf')
-  parsePdf(
+  async parsePdf(
     @Request() req: { user: { id: string } },
-    @Body() body: { text: string; title: string },
+    @UploadedFile() file: Express.Multer.File,
+    @Body('title') title: string,
   ) {
-    if (!body.text?.trim()) throw new BadRequestException('text is required');
-    if (!body.title?.trim()) throw new BadRequestException('title is required');
-    return this.ai.parsePdfAndCreate(req.user.id, body.text.trim(), body.title.trim());
+    if (!file) throw new BadRequestException('file is required');
+    if (!title?.trim()) throw new BadRequestException('title is required');
+    const text = await this.ai.extractPdfText(file.buffer);
+    if (!text.trim()) throw new BadRequestException('could not extract text from PDF');
+    return this.ai.parsePdfAndCreate(req.user.id, text.trim(), title.trim());
   }
 
   @ApiBearerAuth()

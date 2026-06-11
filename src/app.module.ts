@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { WordListsModule } from './word-lists/word-lists.module';
 import { AiModule } from './ai/ai.module';
 import { CalendarModule } from './calendar/calendar.module';
+import { StarredModule } from './starred/starred.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { CalendarModule } from './calendar/calendar.module';
     WordListsModule,
     AiModule,
     CalendarModule,
+    StarredModule,
   ],
   controllers: [AppController],
   providers: [AppService],

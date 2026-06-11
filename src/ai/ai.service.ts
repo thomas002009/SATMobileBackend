@@ -1,5 +1,7 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import OpenAI from 'openai';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>;
 import { PrismaService } from '../prisma/prisma.service';
 
 const RETRY_DELAYS_MS = [3000, 8000, 20000];
@@ -96,6 +98,11 @@ Words: ${words.join(', ')}`;
       `AI request failed: ${errMsg}`,
       { cause: lastError },
     );
+  }
+
+  async extractPdfText(buffer: Buffer): Promise<string> {
+    const data = await pdfParse(buffer);
+    return data.text;
   }
 
   async parsePdfAndCreate(

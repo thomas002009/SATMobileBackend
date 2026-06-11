@@ -71,6 +71,7 @@ model UserWordProgress {
   userId      String
   wordId      String
   mastered    Boolean   @default(false)
+  starred     Boolean   @default(false)
   reviewCount Int       @default(0)
   lastReview  DateTime?
 
