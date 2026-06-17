@@ -110,32 +110,39 @@ Words: ${words.join(', ')}`;
     pdfText: string,
     title: string,
   ): Promise<{ listId: string; count: number }> {
-    const prompt = `The text below is a word list extracted from a PDF. It contains words paired with their definitions. The text may have artifacts such as broken formatting, extra whitespace, or garbled characters — use context to infer the correct pairings.
+    // Free models have small context windows — truncate to avoid silent failures
+    const truncated = pdfText.slice(0, 12000);
 
-Parse every word-definition pair and return ONLY a valid JSON object with no markdown, no code fences, no extra text:
+    const prompt = `The text below is a word list extracted from a PDF. It contains words paired with definitions or part-of-speech labels. The text may have artifacts such as broken formatting, extra whitespace, or garbled characters — use context to infer the correct pairings.
+
+Parse every word-definition pair and return ONLY a valid JSON object with no markdown, no code fences, no extra text. Do not include any explanation.
 {"words":[{"word":"<term>","definition":"<definition>","example":"<example sentence>"}]}
 
-For each entry, preserve the original definition and generate one short example sentence.
+Rules for the "definition" field:
+- If the source provides a real definition (a phrase or sentence explaining the word's meaning), use it.
+- If the source only provides a part-of-speech label (e.g. "n", "v", "adj", "adv", "prep", "n & v", "prep phr", or any similar abbreviation), generate a clear, concise definition for the word yourself.
+- Never output a bare part-of-speech abbreviation as the definition.
+
+For each entry also generate one short example sentence.
 
 Text:
-${pdfText}`;
+${truncated}`;
 
     let lastError: unknown;
     for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
       try {
-        const response = await this.client.responses.create({
+        const response = await this.client.chat.completions.create({
           model: DEFAULT_MODEL,
-          input: prompt,
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: 'json_object' },
         });
 
-        const raw = response.output_text.trim();
-        const jsonStart = raw.indexOf('{');
-        const jsonEnd = raw.lastIndexOf('}');
-        if (jsonStart === -1 || jsonEnd === -1) {
-          throw new Error('AI did not return a valid JSON object');
+        const raw = (response.choices[0].message.content ?? '').trim();
+        if (!raw) {
+          throw new Error('AI returned an empty response');
         }
 
-        const parsed = JSON.parse(raw.slice(jsonStart, jsonEnd + 1)) as {
+        const parsed = JSON.parse(raw) as {
           words: { word: string; definition: string; example: string }[];
         };
 
@@ -160,11 +167,18 @@ ${pdfText}`;
       } catch (err) {
         const is429 =
           err instanceof OpenAI.RateLimitError || (err as any)?.status === 429;
-        if (!is429 || attempt === RETRY_DELAYS_MS.length) {
+        const isLastAttempt = attempt === RETRY_DELAYS_MS.length;
+        if (isLastAttempt) {
           lastError = err;
           break;
         }
-        await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+        // Retry on 429 or bad-JSON responses (free models sometimes refuse then succeed)
+        if (is429 || err instanceof SyntaxError || (err instanceof Error && err.message.includes('JSON'))) {
+          await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt]));
+          continue;
+        }
+        lastError = err;
+        break;
       }
     }
 
